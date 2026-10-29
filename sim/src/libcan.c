@@ -65,11 +65,15 @@ int32_t can_init_dev(can_info_t* device)
     const nos_connection_t *con;
 
     dev = &can_device[device->handle];
-    if (*dev == NULL)
+    /* Already initialized: reuse the existing handle. */
+    if (*dev != NULL)
     {
-        /* get nos can connection params */
-        con = &nos_can_connection[device->handle];
+        device->isUp = CAN_INTERFACE_UP;
+        return CAN_SUCCESS;
     }
+
+    /* First initialization only. */
+    con = &nos_can_connection[device->handle];
 
     /* try to initialize master */
     *dev = NE_can_init_master3(hub, 10, con->uri, con->bus);

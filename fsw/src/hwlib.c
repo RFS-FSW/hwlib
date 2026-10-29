@@ -52,21 +52,52 @@ ivv-itc@lists.nasa.gov
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 int32 hwlib_Init(void)
 {
-    /*
-    ** Register the events
-    */
     CFE_EVS_Register(NULL, 0, CFE_EVS_NO_FILTER);
 
+#ifdef _NOS_OS_
     /*
-    ** Resolve statement with no effect
-    */
-    
+     * Initialize shared NOS CAN buses before device apps start.
+     * These are bus handles, not device CAN IDs.
+     */
+    {
+        const int32_t shared_can_handles[] = {0, 1};
+        size_t i;
 
-    /*
-    ** Init all hardware subsystems and interfaces
-    ** order may be important.
-    */
-    OS_printf("HWLIB Initialized. Version %d.%d.%d.%d \n", HW_LIB_MAJOR_VERSION, HW_LIB_MINOR_VERSION, HW_LIB_REVISION, HW_LIB_MISSION_REV);
+        for (i = 0;
+             i < sizeof(shared_can_handles) /
+                     sizeof(shared_can_handles[0]);
+             ++i)
+        {
+            can_info_t device = {0};
+            int32_t status;
+
+            device.handle = shared_can_handles[i];
+
+            status = can_init_dev(&device);
+
+            if (status != CAN_SUCCESS)
+            {
+                OS_printf(
+                    "HWLIB: shared CAN handle=%ld initialization failed, status=%ld\n",
+                    (long)device.handle,
+                    (long)status);
+
+                return status;
+            }
+
+            OS_printf(
+                "HWLIB: shared CAN handle=%ld ready\n",
+                (long)device.handle);
+        }
+    }
+#endif
+
+    OS_printf(
+        "HWLIB Initialized. Version %d.%d.%d.%d\n",
+        HW_LIB_MAJOR_VERSION,
+        HW_LIB_MINOR_VERSION,
+        HW_LIB_REVISION,
+        HW_LIB_MISSION_REV);
 
     return OS_SUCCESS;
 }
